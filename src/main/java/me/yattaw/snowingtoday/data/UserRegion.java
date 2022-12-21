@@ -48,12 +48,20 @@ public class UserRegion {
         return longitude;
     }
 
+    public String getCity() {
+        return city;
+    }
+
     public void setSnowing(boolean snowing) {
         this.snowing = snowing;
     }
 
     public void setSnowDayProbability(float snowDayProbability) {
         this.snowDayProbability = snowDayProbability;
+    }
+
+    public float getSnowDayProbability() {
+        return snowDayProbability;
     }
 
     @Override

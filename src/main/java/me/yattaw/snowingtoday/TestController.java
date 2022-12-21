@@ -24,6 +24,9 @@ public class TestController {
     private static final String IP_API_URL = "http://ip-api.com/json/%s";
     private static final String WEAHTER_API_URL = "http://api.openweathermap.org/data/2.5/forecast?lat=%f&lon=%f&appid=%s";
 
+    private static final int CANCEL_SNOW_AMOUNT = 127; // 127 millimeters or 5 inches to cancel school on average
+    private static final int CONFIRM_CANCEL_AMOUNT = 200;
+
     private Map<String, UserRegion> cachedRegions = new HashMap<>();
 
     @GetMapping("/test")
@@ -31,67 +34,93 @@ public class TestController {
         String address = System.getenv("ADDRESS");
         UserRegion userRegion = cachedRegions.get(address);
         if (userRegion == null) {
-            userRegion = parseUserRegion(address);
+            userRegion = getUserRegion(address);
 
             // calculate snow day probability
-            parseWeatherData(59.5765F, 133.7017F, System.getenv("WEATHER_API_KEY"));
+            WeatherData weatherData = getWeatherData(45.7833F, 108.5007F, System.getenv("WEATHER_API_KEY"));
+
+            if (weatherData.getTotalSnow() >= CONFIRM_CANCEL_AMOUNT) {
+                userRegion.setSnowDayProbability(100f);
+            }
+
+            userRegion.setSnowDayProbability((weatherData.getTotalSnow() / (float) CANCEL_SNOW_AMOUNT) * 100f);
+
+            System.out.println("Snow Per Hour: " + weatherData.getSnowPerHour());
 
             cachedRegions.put(address, userRegion);
         }
-        return request.getRemoteAddr();
+        return String.format("Snow Day Chance: %.2f", userRegion.getSnowDayProbability());
     }
 
-    private UserRegion parseUserRegion(String ip) {
-        String json = "";
-        try {
-            URLConnection connection = new URL(String.format(IP_API_URL, ip)).openConnection();
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
-                json = in.lines().collect(Collectors.joining());
+    /**
+     * Create UserRegion data from IP
+     *
+     * @param ip the users ip address
+     * @return UserRegion using ip-api to fetch users location from IP
+     */
+    private UserRegion getUserRegion(String ip) {
+        String json = getJsonFromUrl(String.format(IP_API_URL, ip));
+        return UserRegion.createFromJson(parseJsonNode(json));
+    }
+
+    /**
+     * Get Weather Data for the next 12 hours
+     *
+     * @param latitude  the users latitude
+     * @param longitude the users longitude
+     * @param apiKey    openweathermap api key
+     * @return WeatherData object that is used to predict snow day
+     */
+    private WeatherData getWeatherData(float latitude, float longitude, String apiKey) {
+        String json = getJsonFromUrl(String.format(WEAHTER_API_URL, latitude, longitude, apiKey));
+
+        JsonNode weatherList = parseJsonNode(json).get("list");
+
+        WeatherData weatherData = WeatherData.create();
+
+        for (int i = 0; i < 10; i++) { // check for the next 12 hours
+            JsonNode weatherNode = weatherList.get(i);
+            if (weatherNode.has("snow")) {
+                weatherData.addSnowVolume(weatherNode.get("snow").get("3h").floatValue()); // float value is the amount of snowfall over a three-hour period in millimeters
             }
         }
-        catch (IOException e) {
+
+        return weatherData;
+    }
+
+    /**
+     * Get Json From URL
+     *
+     * @param url the url in string format
+     * @return json data from the url
+     */
+    private String getJsonFromUrl(String url) {
+        try {
+            URLConnection connection = new URL(url).openConnection();
+
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
+                return in.lines().collect(Collectors.joining());
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            JsonNode node = objectMapper.readTree(json);
-            return UserRegion.createFromJson(node);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return "";
     }
 
-    private WeatherData parseWeatherData(float latitude, float longitude, String apiKey) {
-        String json = "";
-        try {
-            URLConnection connection = new URL(String.format(WEAHTER_API_URL, latitude, longitude, apiKey)).openConnection();
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
-                json = in.lines().collect(Collectors.joining());
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-
+    /**
+     * Convert String to JsonNode
+     *
+     * @param json string data to parse
+     * @return JsonNode from String
+     */
+    private JsonNode parseJsonNode(String json) {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            JsonNode node = objectMapper.readTree(json);
-
-            JsonNode weatherList = node.get("list");
-            WeatherData weatherData = WeatherData.create();
-            for (int i = 0; i < 4; i++) { // check for the next 12 hours
-                JsonNode weatherNode = weatherList.get(i);
-                if (weatherNode.has("snow")) {
-                    weatherData.addSnowVolume(weatherNode.get("snow").get("3h").floatValue());
-                }
-            }
-
+            return objectMapper.readTree(json);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-
-        return null;
     }
 
 }

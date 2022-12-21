@@ -25,6 +25,10 @@ public class WeatherData {
         return totalSnow / snowingHours;
     }
 
+    public float getTotalSnow() {
+        return totalSnow;
+    }
+
     public boolean isUpdated() {
         return (System.currentTimeMillis() - lastTimeChecked) < 1800000; // last check was less than 30 minutes ago
     }
