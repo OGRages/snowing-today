@@ -12,8 +12,9 @@ public class UserRegion {
     private float latitude;
     private float longitude;
 
-    private boolean snowing;
     private float snowDayProbability = 0.0f;
+
+    private float inchesOfSnow;
 
     private UserRegion(float latitude, float longitude, String zipcode, String country, String region, String city) {
         this.latitude = latitude;
@@ -23,7 +24,6 @@ public class UserRegion {
         this.region = region;
         this.city = city;
     }
-
 
     public static UserRegion create(float latitude, float longitude, String zipcode, String country, String region, String city) {
         return new UserRegion(latitude, longitude, zipcode, country, region, city);
@@ -48,20 +48,38 @@ public class UserRegion {
         return longitude;
     }
 
+    public String getZipcode() {
+        return zipcode;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
     public String getCity() {
         return city;
     }
 
-    public void setSnowing(boolean snowing) {
-        this.snowing = snowing;
-    }
 
     public void setSnowDayProbability(float snowDayProbability) {
         this.snowDayProbability = snowDayProbability;
     }
 
     public float getSnowDayProbability() {
-        return snowDayProbability;
+        return (float) Math.round(snowDayProbability * 100) / 100;
+    }
+
+    public void setInchesOfSnow(float inchesOfSnow) {
+        this.inchesOfSnow = inchesOfSnow;
+
+    }
+
+    public float getInchesOfSnow() {
+        return (float) Math.round(inchesOfSnow * 100) / 100;
     }
 
     @Override
@@ -71,7 +89,10 @@ public class UserRegion {
                 ", country='" + country + '\'' +
                 ", region='" + region + '\'' +
                 ", city='" + city + '\'' +
+                ", latitude=" + latitude +
+                ", longitude=" + longitude +
                 ", snowDayProbability=" + snowDayProbability +
+                ", inchesOfSnow=" + inchesOfSnow +
                 '}';
     }
 }
