@@ -2,21 +2,19 @@ package me.yattaw.snowingtoday.data;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-public class UserRegion {
+public class LocationData {
 
     private String zipcode;
     private String country;
     private String region;
     private String city;
-
     private float latitude;
     private float longitude;
 
-    private float snowDayProbability = 0.0f;
+    private float snowDayProbability;
+    private SnowData snowData;
 
-    private float inchesOfSnow;
-
-    private UserRegion(float latitude, float longitude, String zipcode, String country, String region, String city) {
+    private LocationData(float latitude, float longitude, String zipcode, String country, String region, String city) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.zipcode = zipcode;
@@ -25,12 +23,12 @@ public class UserRegion {
         this.city = city;
     }
 
-    public static UserRegion create(float latitude, float longitude, String zipcode, String country, String region, String city) {
-        return new UserRegion(latitude, longitude, zipcode, country, region, city);
+    public static LocationData create(float latitude, float longitude, String zipcode, String country, String region, String city) {
+        return new LocationData(latitude, longitude, zipcode, country, region, city);
     }
 
-    public static UserRegion createFromJson(JsonNode node) {
-        return new UserRegion(
+    public static LocationData createFromJson(JsonNode node) {
+        return new LocationData(
                 node.get("lat").floatValue(),
                 node.get("lon").floatValue(),
                 node.get("zip").asText(),
@@ -73,18 +71,17 @@ public class UserRegion {
         return (float) Math.round(snowDayProbability * 100) / 100;
     }
 
-    public void setInchesOfSnow(float inchesOfSnow) {
-        this.inchesOfSnow = inchesOfSnow;
-
+    public void setSnowData(SnowData snowData) {
+        this.snowData = snowData;
     }
 
-    public float getInchesOfSnow() {
-        return (float) Math.round(inchesOfSnow * 100) / 100;
+    public SnowData getSnowData() {
+        return snowData;
     }
 
     @Override
     public String toString() {
-        return "UserRegion{" +
+        return "LocationData{" +
                 "zipcode='" + zipcode + '\'' +
                 ", country='" + country + '\'' +
                 ", region='" + region + '\'' +
@@ -92,7 +89,6 @@ public class UserRegion {
                 ", latitude=" + latitude +
                 ", longitude=" + longitude +
                 ", snowDayProbability=" + snowDayProbability +
-                ", inchesOfSnow=" + inchesOfSnow +
                 '}';
     }
 }

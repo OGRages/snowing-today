@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import me.yattaw.snowingtoday.data.LocationData;
 import me.yattaw.snowingtoday.data.SnowData;
 import me.yattaw.snowingtoday.data.SnowFrequency;
-import me.yattaw.snowingtoday.data.UserRegion;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,23 +29,24 @@ public class SnowDayController {
     private static final String WEATHER_API_URL = "https://api.weather.com/v3/wx/forecast/hourly/1day?apiKey=%s&geocode=%f%%2C%f&units=e&language=en-US&format=json";
 
     @GetMapping("/api")
-    public ResponseEntity<UserRegion> getUserData(HttpServletRequest request, @RequestParam(required = false) String lat, @RequestParam(required = false) String lon) {
-        UserRegion userRegion = null;
+    public ResponseEntity<LocationData> getResponseEntity(HttpServletRequest request, @RequestParam(required = false) String lat, @RequestParam(required = false) String lon) {
+        LocationData locationData = null;
+        SnowFrequency frequency = SnowFrequency.SEASONAL; //TODO: allow users to change frequency
+
         if (lat == null || lon == null) {
             String address = System.getenv("ADDRESS"); // change later to requested users IP "request.getRemoteAddr();"
-            if (userRegion == null) {
-                userRegion = getUserRegionFromIP(address);
+            if (locationData == null) {
+                locationData = getUserRegionFromIP(address);
 
                 // calculate snow day probability
-                SnowData data = getSnowData(userRegion.getLatitude(), userRegion.getLongitude(), System.getenv("WEATHER_API_KEY"));
+                SnowData data = getSnowData(locationData.getLatitude(), locationData.getLongitude(), System.getenv("WEATHER_API_KEY"));
 
-                if (data.getTotalSnow() >= SnowFrequency.SEASONAL.getInches()) {
-                    userRegion.setSnowDayProbability(100);
+                if (data.getTotalSnow() >= frequency.getInches()) {
+                    locationData.setSnowDayProbability(100);
                 }
 
-                userRegion.setSnowDayProbability((data.getTotalSnow() / (float) SnowFrequency.SEASONAL.getInches()) * 100f);
-                userRegion.setInchesOfSnow(data.getTotalSnow());
-                System.out.println("Probability of Snowday: " + userRegion.getSnowDayProbability());
+                locationData.setSnowDayProbability((data.getTotalSnow() / (float) frequency.getInches()) * 100f);
+                locationData.setSnowData(data);
             }
 
         } else {
@@ -53,10 +54,9 @@ public class SnowDayController {
 
         }
 
-        // create the response object here
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        return new ResponseEntity<>(userRegion, headers, HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).headers(headers).body(locationData);
     }
 
     /**
@@ -65,9 +65,9 @@ public class SnowDayController {
      * @param ip the users ip address
      * @return UserRegion using ip-api to fetch users location from IP
      */
-    private UserRegion getUserRegionFromIP(String ip) {
+    private LocationData getUserRegionFromIP(String ip) {
         String json = getJsonFromUrl(String.format(IP_API_URL, ip));
-        return UserRegion.createFromJson(parseJsonNode(json));
+        return LocationData.createFromJson(parseJsonNode(json));
     }
 
     /**
