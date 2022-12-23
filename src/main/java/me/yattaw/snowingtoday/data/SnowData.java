@@ -18,7 +18,6 @@ public class SnowData {
     public void addSnowVolume(float volume) { // add inches of snow
         this.totalSnow += volume;
         this.snowingHours++;
-        System.out.println("added snow volume, new total: " + totalSnow);
     }
 
     public float getSnowPerHour() {

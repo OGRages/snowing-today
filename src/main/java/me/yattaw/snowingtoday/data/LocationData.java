@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public class LocationData {
 
-    private String zipcode;
+    private String postalCode;
     private String country;
-    private String region;
+    private String district;
     private String city;
     private float latitude;
     private float longitude;
@@ -14,12 +14,12 @@ public class LocationData {
     private float snowDayProbability;
     private SnowData snowData;
 
-    private LocationData(float latitude, float longitude, String zipcode, String country, String region, String city) {
+    private LocationData(float latitude, float longitude, String postalCode, String country, String district, String city) {
         this.latitude = latitude;
         this.longitude = longitude;
-        this.zipcode = zipcode;
+        this.postalCode = postalCode;
         this.country = country;
-        this.region = region;
+        this.district = district;
         this.city = city;
     }
 
@@ -46,16 +46,16 @@ public class LocationData {
         return longitude;
     }
 
-    public String getZipcode() {
-        return zipcode;
+    public String getPostalCode() {
+        return postalCode;
     }
 
     public String getCountry() {
         return country;
     }
 
-    public String getRegion() {
-        return region;
+    public String getDistrict() {
+        return district;
     }
 
     public String getCity() {
@@ -82,9 +82,9 @@ public class LocationData {
     @Override
     public String toString() {
         return "LocationData{" +
-                "zipcode='" + zipcode + '\'' +
+                "zipcode='" + postalCode + '\'' +
                 ", country='" + country + '\'' +
-                ", region='" + region + '\'' +
+                ", district='" + district + '\'' +
                 ", city='" + city + '\'' +
                 ", latitude=" + latitude +
                 ", longitude=" + longitude +

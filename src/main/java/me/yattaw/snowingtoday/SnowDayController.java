@@ -3,7 +3,6 @@ package me.yattaw.snowingtoday;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
 import me.yattaw.snowingtoday.data.LocationData;
 import me.yattaw.snowingtoday.data.SnowData;
 import me.yattaw.snowingtoday.data.SnowFrequency;
@@ -20,44 +19,57 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 public class SnowDayController {
 
-    private static final String IP_API_URL = "http://ip-api.com/json/%s";
+    private static final String IP_API_URL = "https://ip-api.com/json/%s";
     private static final String WEATHER_API_URL = "https://api.weather.com/v3/wx/forecast/hourly/1day?apiKey=%s&geocode=%f%%2C%f&units=e&language=en-US&format=json";
+    private static final String QUERY_WEATHER_URL = "https://api.weather.com/v3/location/search?query=%s&locationType=city&language=en-US&format=json&apiKey=%s";
 
     @GetMapping("/api")
-    public ResponseEntity<LocationData> getResponseEntity(HttpServletRequest request, @RequestParam(required = false) String lat, @RequestParam(required = false) String lon) {
-        LocationData locationData = null;
+    public ResponseEntity<List<LocationData>> getResponseEntity(@RequestParam(required = false) String query, @RequestParam(required = false) String lat, @RequestParam(required = false) String lon) {
         SnowFrequency frequency = SnowFrequency.SEASONAL; //TODO: allow users to change frequency
+        List<LocationData> locationDataList = null;
 
-        if (lat == null || lon == null) {
+        if (query != null) {
+            locationDataList = getLocationsFromString(query, System.getenv("WEATHER_API_KEY"));
+        } else if (lat == null || lon == null) {
             String address = System.getenv("ADDRESS"); // change later to requested users IP "request.getRemoteAddr();"
-            if (locationData == null) {
-                locationData = getUserRegionFromIP(address);
-
-                // calculate snow day probability
-                SnowData data = getSnowData(locationData.getLatitude(), locationData.getLongitude(), System.getenv("WEATHER_API_KEY"));
-
-                if (data.getTotalSnow() >= frequency.getInches()) {
-                    locationData.setSnowDayProbability(100);
-                }
-
-                locationData.setSnowDayProbability((data.getTotalSnow() / (float) frequency.getInches()) * 100f);
-                locationData.setSnowData(data);
-            }
-
-        } else {
-            // create userRegion from latitude and longitude
-
+            locationDataList = new ArrayList<>();
+            locationDataList.add(getUserRegionFromIP(address));
         }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        return ResponseEntity.status(HttpStatus.OK).headers(headers).body(locationData);
+        return ResponseEntity.status(HttpStatus.OK).headers(headers).body(locationDataList);
     }
+
+    /**
+     * Get Best Locations Containing Query String
+     *
+     * @param query  a string that contains location information
+     * @param apiKey api key for weather api
+     * @return a list of locations that fit the query
+     */
+    private List<LocationData> getLocationsFromString(String query, String apiKey) {
+        List<LocationData> locationDataList = new ArrayList<>();
+        String json = getJsonFromUrl(String.format(QUERY_WEATHER_URL, query.replace(" ", "%20"), apiKey));
+        JsonNode jsonNode = parseJsonNode(json).get("location");
+
+        for (int i = 0; i < jsonNode.get("address").size(); i++) {
+
+            LocationData locationData = LocationData.create(jsonNode.get("latitude").get(i).floatValue(), jsonNode.get("longitude").get(i).floatValue(), jsonNode.get("postalCode").get(i).textValue(), jsonNode.get("country").get(i).textValue(), jsonNode.get("adminDistrict").get(i).textValue(), jsonNode.get("city").get(i).textValue());
+
+            addSnowData(locationData, System.getenv("WEATHER_API_KEY"));
+            locationDataList.add(locationData);
+        }
+        return locationDataList;
+    }
+
 
     /**
      * Create UserRegion data from IP
@@ -67,22 +79,30 @@ public class SnowDayController {
      */
     private LocationData getUserRegionFromIP(String ip) {
         String json = getJsonFromUrl(String.format(IP_API_URL, ip));
-        return LocationData.createFromJson(parseJsonNode(json));
+        LocationData locationData = LocationData.createFromJson(parseJsonNode(json));
+        addSnowData(locationData, System.getenv("WEATHER_API_KEY"));
+        return locationData;
     }
 
     /**
-     * Get Snow Data for the next 24 hours
+     * Add Snow Data from the forecast
      *
-     * @param latitude  the users latitude
-     * @param longitude the users longitude
-     * @param apiKey    weather api key
+     * @param locationData the locationData to add SnowData to
+     * @param apiKey       weather api key
      * @return SnowData object that is used to predict snow day
      */
-    private SnowData getSnowData(float latitude, float longitude, String apiKey) {
-        String json = getJsonFromUrl(String.format(WEATHER_API_URL, apiKey, latitude, longitude));
+    private SnowData addSnowData(LocationData locationData, String apiKey) {
+        String json = getJsonFromUrl(String.format(WEATHER_API_URL, apiKey, locationData.getLatitude(), locationData.getLongitude()));
         JsonNode jsonNode = parseJsonNode(json);
         SnowData weatherData = SnowData.create();
         jsonNode.get("qpfSnow").elements().forEachRemaining(node -> weatherData.addSnowVolume(node.floatValue()));
+
+        if (weatherData.getTotalSnow() >= SnowFrequency.SEASONAL.getInches()) {
+            locationData.setSnowDayProbability(100);
+        }
+
+        locationData.setSnowDayProbability((weatherData.getTotalSnow() / (float) SnowFrequency.SEASONAL.getInches()) * 100f);
+        locationData.setSnowData(weatherData);
         return weatherData;
     }
 
