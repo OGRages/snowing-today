@@ -2,9 +2,10 @@ package me.yattaw.snowingtoday.data;
 
 public enum SchoolPrediction {
 
-    LIMITED("Low chance of school being delayed or canceled", 30),
-    DELAY("Very likely for school to be delayed", 70),
-    CANCELED("Very high chance of school being canceled", 100);
+    NO_SNOW("No chance of school being cancelled from snow", 0),
+    LIMITED("Low chance of school delay or cancellation", 30),
+    DELAY("Possible chance of school delay or cancellation", 70),
+    CANCELED("High chance of school cancellation", 100);
 
     private String description;
     private int chance;
@@ -22,7 +23,8 @@ public enum SchoolPrediction {
         return description;
     }
 
-    public String getDescriptionFromChance(int chance) {
+    public static String getDescriptionFromChance(int chance) {
+
         for (SchoolPrediction prediction : SchoolPrediction.values()) {
             if (chance <= prediction.getChance()) return prediction.getDescription();
         }

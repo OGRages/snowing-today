@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import me.yattaw.snowingtoday.data.LocationData;
+import me.yattaw.snowingtoday.data.SchoolPrediction;
 import me.yattaw.snowingtoday.data.SnowData;
 import me.yattaw.snowingtoday.data.SnowFrequency;
 import org.springframework.http.HttpHeaders;
@@ -26,9 +27,10 @@ import java.util.stream.Collectors;
 @RestController
 public class SnowDayController {
 
-    private static final String IP_API_URL = "https://ip-api.com/json/%s";
+    private static final String IP_API_URL = "http://ip-api.com/json/%s";
     private static final String WEATHER_API_URL = "https://api.weather.com/v3/wx/forecast/hourly/1day?apiKey=%s&geocode=%f%%2C%f&units=e&language=en-US&format=json";
     private static final String QUERY_WEATHER_URL = "https://api.weather.com/v3/location/search?query=%s&locationType=city&language=en-US&format=json&apiKey=%s";
+    private static final String API_KEY = System.getenv("WEATHER_API_KEY");
 
     @GetMapping("/api")
     public ResponseEntity<List<LocationData>> getResponseEntity(@RequestParam(required = false) String query, @RequestParam(required = false) String lat, @RequestParam(required = false) String lon) {
@@ -36,7 +38,7 @@ public class SnowDayController {
         List<LocationData> locationDataList = null;
 
         if (query != null) {
-            locationDataList = getLocationsFromString(query, System.getenv("WEATHER_API_KEY"));
+            locationDataList = getLocationsFromString(query);
         } else if (lat == null || lon == null) {
             String address = System.getenv("ADDRESS"); // change later to requested users IP "request.getRemoteAddr();"
             locationDataList = new ArrayList<>();
@@ -51,20 +53,29 @@ public class SnowDayController {
     /**
      * Get Best Locations Containing Query String
      *
-     * @param query  a string that contains location information
-     * @param apiKey api key for weather api
+     * @param query a string that contains location information
      * @return a list of locations that fit the query
      */
-    private List<LocationData> getLocationsFromString(String query, String apiKey) {
+    private List<LocationData> getLocationsFromString(String query) {
         List<LocationData> locationDataList = new ArrayList<>();
-        String json = getJsonFromUrl(String.format(QUERY_WEATHER_URL, query.replace(" ", "%20"), apiKey));
+        String json = getJsonFromUrl(String.format(QUERY_WEATHER_URL, query.replace(" ", "%20"), API_KEY));
+
+        if (json == null) return null;
+
         JsonNode jsonNode = parseJsonNode(json).get("location");
 
         for (int i = 0; i < jsonNode.get("address").size(); i++) {
 
-            LocationData locationData = LocationData.create(jsonNode.get("latitude").get(i).floatValue(), jsonNode.get("longitude").get(i).floatValue(), jsonNode.get("postalCode").get(i).textValue(), jsonNode.get("country").get(i).textValue(), jsonNode.get("adminDistrict").get(i).textValue(), jsonNode.get("city").get(i).textValue());
+            LocationData locationData = LocationData.create(
+                    jsonNode.get("latitude").get(i).floatValue(),
+                    jsonNode.get("longitude").get(i).floatValue(),
+                    jsonNode.get("postalCode").get(i).textValue(),
+                    jsonNode.get("country").get(i).textValue(),
+                    jsonNode.get("adminDistrict").get(i).textValue(),
+                    jsonNode.get("city").get(i).textValue()
+            );
 
-            addSnowData(locationData, System.getenv("WEATHER_API_KEY"));
+            addSnowData(locationData);
             locationDataList.add(locationData);
         }
         return locationDataList;
@@ -80,7 +91,7 @@ public class SnowDayController {
     private LocationData getUserRegionFromIP(String ip) {
         String json = getJsonFromUrl(String.format(IP_API_URL, ip));
         LocationData locationData = LocationData.createFromJson(parseJsonNode(json));
-        addSnowData(locationData, System.getenv("WEATHER_API_KEY"));
+        addSnowData(locationData);
         return locationData;
     }
 
@@ -88,11 +99,10 @@ public class SnowDayController {
      * Add Snow Data from the forecast
      *
      * @param locationData the locationData to add SnowData to
-     * @param apiKey       weather api key
      * @return SnowData object that is used to predict snow day
      */
-    private SnowData addSnowData(LocationData locationData, String apiKey) {
-        String json = getJsonFromUrl(String.format(WEATHER_API_URL, apiKey, locationData.getLatitude(), locationData.getLongitude()));
+    private SnowData addSnowData(LocationData locationData) {
+        String json = getJsonFromUrl(String.format(WEATHER_API_URL, API_KEY, locationData.getLatitude(), locationData.getLongitude()));
         JsonNode jsonNode = parseJsonNode(json);
         SnowData weatherData = SnowData.create();
         jsonNode.get("qpfSnow").elements().forEachRemaining(node -> weatherData.addSnowVolume(node.floatValue()));
@@ -102,7 +112,9 @@ public class SnowDayController {
         }
 
         locationData.setSnowDayProbability((weatherData.getTotalSnow() / (float) SnowFrequency.SEASONAL.getInches()) * 100f);
+        weatherData.setPrediction(SchoolPrediction.getDescriptionFromChance(Math.round(locationData.getSnowDayProbability())));
         locationData.setSnowData(weatherData);
+
         return weatherData;
     }
 
@@ -120,10 +132,8 @@ public class SnowDayController {
                 return in.lines().collect(Collectors.joining());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            return null;
         }
-
-        return "";
     }
 
     /**
