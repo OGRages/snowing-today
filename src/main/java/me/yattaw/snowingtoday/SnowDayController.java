@@ -30,14 +30,21 @@ public class SnowDayController {
     private static final String IP_API_URL = "http://ip-api.com/json/%s";
     private static final String WEATHER_API_URL = "https://api.weather.com/v3/wx/forecast/hourly/1day?apiKey=%s&geocode=%f%%2C%f&units=e&language=en-US&format=json";
     private static final String QUERY_WEATHER_URL = "https://api.weather.com/v3/location/search?query=%s&locationType=city&language=en-US&format=json&apiKey=%s";
+    private static final String POSTAL_WEATHER_URL = "https://api.weather.com/v3/location/search?apiKey=%s&language=en-US&query=%s&locationType=postCode&format=json";
+
     private static final String API_KEY = System.getenv("WEATHER_API_KEY");
 
     @GetMapping("/api")
-    public ResponseEntity<List<LocationData>> getResponseEntity(@RequestParam(required = false) String query, @RequestParam(required = false) String lat, @RequestParam(required = false) String lon) {
+    public ResponseEntity<List<LocationData>> getResponseEntity(
+            @RequestParam(required = false) String query, @RequestParam(required = false) String postalCode,
+            @RequestParam(required = false) String lat, @RequestParam(required = false) String lon
+    ) {
         SnowFrequency frequency = SnowFrequency.SEASONAL; //TODO: allow users to change frequency
         List<LocationData> locationDataList = null;
 
-        if (query != null) {
+        if (postalCode != null) {
+            locationDataList = getLocationsFromPostal(postalCode);
+        } else if (query != null) {
             locationDataList = getLocationsFromString(query);
         } else if (lat == null || lon == null) {
             String address = System.getenv("ADDRESS"); // change later to requested users IP "request.getRemoteAddr();"
@@ -81,6 +88,36 @@ public class SnowDayController {
         return locationDataList;
     }
 
+    /**
+     * Get Locations Containing Postal Code
+     *
+     * @param postalCode the postal code we are searching for
+     * @return a list of locations that fit the postal code search
+     */
+    private List<LocationData> getLocationsFromPostal(String postalCode) {
+        List<LocationData> locationDataList = new ArrayList<>();
+        String json = getJsonFromUrl(String.format(POSTAL_WEATHER_URL, API_KEY, postalCode));
+
+        if (json == null) return null;
+
+        JsonNode jsonNode = parseJsonNode(json).get("location");
+
+        for (int i = 0; i < jsonNode.get("address").size(); i++) {
+
+            LocationData locationData = LocationData.create(
+                    jsonNode.get("latitude").get(i).floatValue(),
+                    jsonNode.get("longitude").get(i).floatValue(),
+                    jsonNode.get("postalCode").get(i).textValue(),
+                    jsonNode.get("country").get(i).textValue(),
+                    jsonNode.get("adminDistrict").get(i).textValue(),
+                    jsonNode.get("city").get(i).textValue()
+            );
+
+            addSnowData(locationData);
+            locationDataList.add(locationData);
+        }
+        return locationDataList;
+    }
 
     /**
      * Create UserRegion data from IP
@@ -110,6 +147,8 @@ public class SnowDayController {
         if (weatherData.getTotalSnow() >= SnowFrequency.SEASONAL.getInches()) {
             locationData.setSnowDayProbability(100);
         }
+
+        jsonNode.get("temperature").elements().forEachRemaining(node -> weatherData.processTemperature(node.floatValue()));
 
         locationData.setSnowDayProbability((weatherData.getTotalSnow() / (float) SnowFrequency.SEASONAL.getInches()) * 100f);
         weatherData.setPrediction(SchoolPrediction.getDescriptionFromChance(Math.round(locationData.getSnowDayProbability())));

@@ -1,5 +1,7 @@
 package me.yattaw.snowingtoday.data;
 
+import java.util.Arrays;
+
 public enum SchoolPrediction {
 
     NO_SNOW("No chance of school being cancelled from snow", 0),
@@ -24,11 +26,11 @@ public enum SchoolPrediction {
     }
 
     public static String getDescriptionFromChance(int chance) {
-
-        for (SchoolPrediction prediction : SchoolPrediction.values()) {
-            if (chance <= prediction.getChance()) return prediction.getDescription();
-        }
-        return "Failed to retrieve prediction data."; // should never hit this
+        return Arrays.stream(SchoolPrediction.values())
+                .filter(prediction -> chance <= prediction.getChance())
+                .findFirst()
+                .map(SchoolPrediction::getDescription)
+                .orElse("Failed to retrieve prediction data."); // Should never reach this line of code
     }
 
 }
