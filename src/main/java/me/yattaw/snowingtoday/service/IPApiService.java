@@ -16,7 +16,7 @@ public class IPApiService {
     public static LocationData getUserRegionFromIP(String ip) {
         String json = JsonParser.getJsonFromUrl(String.format(IP_API_URL, ip));
         LocationData locationData = LocationData.createFromJson(JsonParser.parseJsonNode(json));
-        WeatherAPIService.addSnowData(locationData);
+        WeatherApiService.addSnowData(locationData);
         return locationData;
     }
 

@@ -13,7 +13,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WeatherAPIService {
+public class WeatherApiService {
 
     private static final String WEATHER_API_URL = "https://api.weather.com/v3/wx/forecast/hourly/1day?apiKey=%s&geocode=%f%%2C%f&units=e&language=en-US&format=json";
     private static final String QUERY_WEATHER_URL = "https://api.weather.com/v3/location/search?query=%s&locationType=city&language=en-US&format=json&apiKey=%s";
@@ -49,14 +49,7 @@ public class WeatherAPIService {
         // Iterate through each location and create Location Data object
         for (int i = 0; i < jsonNode.get("address").size(); i++) {
 
-            LocationData locationData = LocationData.create(
-                    jsonNode.get("latitude").get(i).floatValue(),
-                    jsonNode.get("longitude").get(i).floatValue(),
-                    jsonNode.get("postalCode").get(i).textValue(),
-                    jsonNode.get("country").get(i).textValue(),
-                    jsonNode.get("adminDistrict").get(i).textValue(),
-                    jsonNode.get("city").get(i).textValue()
-            );
+            LocationData locationData = LocationData.create(jsonNode.get("latitude").get(i).floatValue(), jsonNode.get("longitude").get(i).floatValue(), jsonNode.get("postalCode").get(i).textValue(), jsonNode.get("country").get(i).textValue(), jsonNode.get("adminDistrict").get(i).textValue(), jsonNode.get("city").get(i).textValue());
 
             // Add snow data and add object to list
             addSnowData(locationData);
@@ -68,6 +61,7 @@ public class WeatherAPIService {
 
     /**
      * Add Snow Data from the forecast to Location Data object
+     *
      * @param locationData the locationData to add SnowData to
      * @return SnowData object that is used to predict snow day
      */

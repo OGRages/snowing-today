@@ -3,7 +3,7 @@ package me.yattaw.snowingtoday;
 import me.yattaw.snowingtoday.data.LocationData;
 import me.yattaw.snowingtoday.data.SnowFrequency;
 import me.yattaw.snowingtoday.service.IPApiService;
-import me.yattaw.snowingtoday.service.WeatherAPIService;
+import me.yattaw.snowingtoday.service.WeatherApiService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,9 +31,9 @@ public class SnowDayController {
 
         List<LocationData> locationDataList = null;
         if (postalCode != null) {
-            locationDataList = WeatherAPIService.getLocations(postalCode);
+            locationDataList = WeatherApiService.getLocations(postalCode);
         } else if (query != null) {
-            locationDataList = WeatherAPIService.getLocations(query);
+            locationDataList = WeatherApiService.getLocations(query);
         } else if (ipAddress != null) {
             locationDataList = new ArrayList<>();
             locationDataList.add(IPApiService.getUserRegionFromIP(ipAddress));
