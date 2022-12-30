@@ -1,7 +1,8 @@
 package me.yattaw.snowingtoday;
 
-import me.yattaw.snowingtoday.data.LocationData;
 import me.yattaw.snowingtoday.data.SnowFrequency;
+import me.yattaw.snowingtoday.data.response.LocationData;
+import me.yattaw.snowingtoday.data.response.ResponseWrapper;
 import me.yattaw.snowingtoday.service.IPApiService;
 import me.yattaw.snowingtoday.service.WeatherApiService;
 import org.springframework.http.HttpHeaders;
@@ -18,8 +19,8 @@ import java.util.List;
 @RestController
 public class SnowDayController {
 
-    @GetMapping("/api")
-    public ResponseEntity<List<LocationData>> getResponseEntity(
+    @GetMapping("/api/v1/locations")
+    public ResponseEntity<ResponseWrapper> getResponseEntity(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String postalCode,
             @RequestParam(required = false) String ipAddress,
@@ -47,7 +48,12 @@ public class SnowDayController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        return ResponseEntity.status(HttpStatus.OK).headers(headers).body(locationDataList);
+        ResponseWrapper response = ResponseWrapper.of(locationDataList);
+
+        return ResponseEntity
+                .status(response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
+                .headers(headers)
+                .body(response);
     }
 
 }

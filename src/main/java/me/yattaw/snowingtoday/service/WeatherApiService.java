@@ -2,7 +2,7 @@ package me.yattaw.snowingtoday.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import me.yattaw.snowingtoday.SnowingTodayApplication;
-import me.yattaw.snowingtoday.data.LocationData;
+import me.yattaw.snowingtoday.data.response.LocationData;
 import me.yattaw.snowingtoday.data.SchoolPrediction;
 import me.yattaw.snowingtoday.data.SnowData;
 import me.yattaw.snowingtoday.data.SnowFrequency;

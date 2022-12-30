@@ -1,6 +1,6 @@
 package me.yattaw.snowingtoday.service;
 
-import me.yattaw.snowingtoday.data.LocationData;
+import me.yattaw.snowingtoday.data.response.LocationData;
 import me.yattaw.snowingtoday.util.JsonParser;
 
 public class IPApiService {

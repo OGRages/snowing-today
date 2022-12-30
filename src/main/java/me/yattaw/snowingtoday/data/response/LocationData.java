@@ -1,6 +1,7 @@
-package me.yattaw.snowingtoday.data;
+package me.yattaw.snowingtoday.data.response;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import me.yattaw.snowingtoday.data.SnowData;
 
 public class LocationData {
 
