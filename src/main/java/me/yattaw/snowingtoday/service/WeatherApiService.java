@@ -16,8 +16,8 @@ import java.util.List;
 public class WeatherApiService {
 
     private static final String WEATHER_API_URL = "https://api.weather.com/v3/";
-    private static final String SEARCH_URL = "location/search?query=%s&locationType=%s&language=en-US&format=json&apiKey=%s";
-    private static final String FORECAST_URL = "wx/forecast/hourly/1day?apiKey=%s&geocode=%f%%2C%f&units=e&language=en-US&format=json";
+    private static final String SEARCH_PATH = "location/search?query=%s&locationType=%s&language=en-US&format=json&apiKey=%s";
+    private static final String FORECAST_PATH = "wx/forecast/hourly/1day?apiKey=%s&geocode=%f%%2C%f&units=e&language=en-US&format=json";
 
     /**
      * Get Best Locations Containing Query String or Postal Code
@@ -32,11 +32,11 @@ public class WeatherApiService {
         String json;
 
         // Get JSON from either query string or postal code URL
-        if (query.matches("\\d{5}")) {// "location/search?query=%s%locationType=%s&language=en-US&format=json&apiKey=%s"
-            json = JsonParser.getJsonFromUrl(WEATHER_API_URL + String.format(SEARCH_URL, query, "postCode", SnowingTodayApplication.API_KEY));
+        if (query.matches("\\d{5}")) {
+            json = JsonParser.getJsonFromUrl(WEATHER_API_URL + String.format(SEARCH_PATH, query, "postCode", SnowingTodayApplication.API_KEY));
         } else {
             try {
-                json = JsonParser.getJsonFromUrl(WEATHER_API_URL + String.format(SEARCH_URL, URLEncoder.encode(query, "UTF-8"), "city", SnowingTodayApplication.API_KEY));
+                json = JsonParser.getJsonFromUrl(WEATHER_API_URL + String.format(SEARCH_PATH, URLEncoder.encode(query, "UTF-8"), "city", SnowingTodayApplication.API_KEY));
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }
@@ -73,7 +73,7 @@ public class WeatherApiService {
      * @return SnowData object that is used to predict snow day
      */
     public static SnowData addSnowData(LocationData locationData) {
-        String json = JsonParser.getJsonFromUrl(WEATHER_API_URL + String.format(FORECAST_URL, SnowingTodayApplication.API_KEY, locationData.getLatitude(), locationData.getLongitude()));
+        String json = JsonParser.getJsonFromUrl(WEATHER_API_URL + String.format(FORECAST_PATH, SnowingTodayApplication.API_KEY, locationData.getLatitude(), locationData.getLongitude()));
         JsonNode jsonNode = JsonParser.parseJsonNode(json);
 
         // Initialize snow data object

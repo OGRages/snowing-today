@@ -28,7 +28,7 @@ public class SnowDayController {
             @RequestParam(required = false) String lon) {
 
 //        TODO: allow users to change frequency
-        SnowFrequency frequency = SnowFrequency.SEASONAL;        //Set the default value here.
+        SnowFrequency frequency = SnowFrequency.SEASONAL;   // Set the default value here.
 
         List<LocationData> locationDataList = null;
         if (postalCode != null) {
@@ -50,8 +50,7 @@ public class SnowDayController {
         headers.setContentType(MediaType.APPLICATION_JSON);
         ResponseWrapper response = ResponseWrapper.of(locationDataList);
 
-        return ResponseEntity
-                .status(response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
+        return ResponseEntity.status(response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
                 .headers(headers)
                 .body(response);
     }
