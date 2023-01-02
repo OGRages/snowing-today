@@ -50,12 +50,12 @@ public class WeatherApiService {
         for (int i = 0; i < jsonNode.get("address").size(); i++) {
 
             LocationData locationData = LocationData.create(
-                    jsonNode.get("latitude").get(i).floatValue(),
-                    jsonNode.get("longitude").get(i).floatValue(),
                     jsonNode.get("postalCode").get(i).textValue(),
                     jsonNode.get("country").get(i).textValue(),
                     jsonNode.get("adminDistrict").get(i).textValue(),
-                    jsonNode.get("city").get(i).textValue()
+                    jsonNode.get("city").get(i).textValue(),
+                    jsonNode.get("latitude").get(i).floatValue(),
+                    jsonNode.get("longitude").get(i).floatValue()
             );
 
             // Add snow data and add object to list
@@ -73,7 +73,14 @@ public class WeatherApiService {
      * @return SnowData object that is used to predict snow day
      */
     public static SnowData addSnowData(LocationData locationData) {
-        String json = JsonParser.getJsonFromUrl(WEATHER_API_URL + String.format(FORECAST_PATH, SnowingTodayApplication.API_KEY, locationData.getLatitude(), locationData.getLongitude()));
+        String json = JsonParser.getJsonFromUrl(WEATHER_API_URL +
+                String.format(FORECAST_PATH,
+                        SnowingTodayApplication.API_KEY,
+                        locationData.getLatitude(),
+                        locationData.getLongitude()
+                )
+        );
+
         JsonNode jsonNode = JsonParser.parseJsonNode(json);
 
         // Initialize snow data object
